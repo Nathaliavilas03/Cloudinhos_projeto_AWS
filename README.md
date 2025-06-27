@@ -218,12 +218,12 @@ Este projeto está sob a licença [MIT](LICENSE) - veja o arquivo LICENSE para d
 
 ## 👥 Equipe Cloudinhos
 
-- [Nathalia Villas Boas](https://github.com/usuario-github-da-nathalia)
-- [Antonio Carlos Ribeiro Junior](https://github.com/usuario-github-do-antonio)
-- [Orlei de Oliveira](https://github.com/usuario-github-do-orlei)
-- [Filipe da Silva Rodrigues](https://github.com/usuario-github-do-filipe)
-- [Lucas Pedro Jaud Endres](https://github.com/usuario-github-do-lucas)
-- [Flávio Correia de Almeida Serra](https://github.com/usuario-github-do-flavio)
+- [Nathalia Villas Boas](https://github.com/Nathaliavilas03)
+- [Antonio Carlos Ribeiro Junior](https://github.com/acrjunior-cloud)
+- [Orlei de Oliveira](https://github.com/Orleiedn)
+- [Filipe da Silva Rodrigues](https://github.com/filipe-rds)
+- [Lucas Pedro Jaud Endres](https://github.com/LucasJaud)
+- [Flávio Correia de Almeida Serra](https://github.com/sonyflavio)
 
 
 
