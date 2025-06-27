@@ -22,11 +22,11 @@ Criar um sistema que permita às vítimas de violência doméstica conversar de 
 
 ## ✨ Características Principais
 
-- **🤖 IA Conversacional Humanizada**: Utiliza Amazon Bedrock com modelos Claude Sonnet para interações empáticas e acolhedoras
+- **🤖 IA Conversacional Humanizada**: Utiliza Amazon Bedrock com o modelo Claude Sonnet 4 para interações empáticas e acolhedoras
 - **🔒 Segurança e Discrição**: Interface discreta que não levanta suspeitas
 - **⚡ Avaliação Rápida de Risco**: Detecção eficiente com 2-3 perguntas-chave baseadas no protocolo FRIDA
 - **🎯 Encaminhamentos Personalizados**: Sugestões específicas com localização geográfica dos órgãos de apoio
-- **📍 Localização Inteligente**: Utiliza Amazon Location Service para encontrar serviços próximos (até 10km)
+- **📍 Localização Inteligente**: Utiliza o Amazon Bedrock para encontrar serviços próximos (até 10km)
 - **🔐 Autenticação Segura**: Sistema de login para proteção dos dados
 
 ## 🏗️ Arquitetura Técnica
@@ -36,7 +36,6 @@ Criar um sistema que permita às vítimas de violência doméstica conversar de 
 - **Frontend**: Streamlit
 - **Backend**: Python 3.12
 - **IA**: Amazon Bedrock (Claude Sonnet 4)
-- **Geolocalização**: Amazon Location Service
 - **Cloud**: AWS (Amazon Web Services)
 - **Processamento de Documentos**: PyPDF2, pandas
 - **Autenticação**: Sistema próprio com cookies seguros
@@ -167,9 +166,9 @@ O sistema realiza uma **detecção eficiente** através de perguntas-chave:
 
 O sistema utiliza **avaliação inteligente** baseada no protocolo FRIDA:
 
-- **� Risco Elevado**: Qualquer resposta afirmativa nas perguntas-chave de detecção inicial
+- **🔴 Risco Elevado**: Qualquer resposta afirmativa nas perguntas-chave de detecção inicial
 - **🟡 Risco Médio**: Sinais de controle emocional, ciúmes, dependência financeira ou histórico de agressões
-- **� Risco Baixo**: Ausência de controle, ameaças ou agressões, mas com algum incômodo emocional
+- **🟢 Risco Baixo**: Ausência de controle, ameaças ou agressões, mas com algum incômodo emocional
 
 #### ⚡ Detecção Rápida
 Se identificado **risco elevado** nas primeiras 2 respostas, o sistema para de perguntar e orienta **imediatamente** para proteção.
@@ -195,8 +194,6 @@ O sistema oferece orientações personalizadas com **localização geográfica**
 
 ### 📍 Funcionalidade de Localização
 
-**Powered by Amazon Location Service:**
-
 1. **Solicitação de CEP**: O sistema pede a localização da usuária
 2. **Busca Inteligente**: Localiza serviços num raio de até 10km
 3. **Contatos Completos**: Fornece telefone e WhatsApp quando disponível
@@ -208,7 +205,6 @@ O sistema oferece orientações personalizadas com **localização geográfica**
 - **Autenticação**: Sistema de login protegido
 - **Confidencialidade**: Dados não são armazenados permanentemente
 - **Discrição Total**: Interface neutra que não revela o propósito imediatamente
-- **Geolocalização Segura**: Uso responsável do Amazon Location Service
 - **Anonimato**: Apenas CEP é solicitado, sem identificação pessoal
 
 ## 📚 Fundamentação Científica
