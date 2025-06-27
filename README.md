@@ -22,10 +22,11 @@ Criar um sistema que permita às vítimas de violência doméstica conversar de 
 
 ## ✨ Características Principais
 
-- **🤖 IA Conversacional**: Utiliza Amazon Bedrock com modelos Claude Sonnet para interações naturais
+- **🤖 IA Conversacional Humanizada**: Utiliza Amazon Bedrock com modelos Claude Sonnet para interações empáticas e acolhedoras
 - **🔒 Segurança e Discrição**: Interface discreta que não levanta suspeitas
-- **📊 Avaliação de Risco Sistematizada**: Baseada no protocolo FRIDA oficial
-- **🎯 Encaminhamentos Personalizados**: Sugestões específicas baseadas no nível de risco identificado
+- **⚡ Avaliação Rápida de Risco**: Detecção eficiente com 2-3 perguntas-chave baseadas no protocolo FRIDA
+- **🎯 Encaminhamentos Personalizados**: Sugestões específicas com localização geográfica dos órgãos de apoio
+- **📍 Localização Inteligente**: Utiliza Amazon Location Service para encontrar serviços próximos (até 10km)
 - **🔐 Autenticação Segura**: Sistema de login para proteção dos dados
 
 ## 🏗️ Arquitetura Técnica
@@ -35,6 +36,7 @@ Criar um sistema que permita às vítimas de violência doméstica conversar de 
 - **Frontend**: Streamlit
 - **Backend**: Python 3.12
 - **IA**: Amazon Bedrock (Claude Sonnet 4)
+- **Geolocalização**: Amazon Location Service
 - **Cloud**: AWS (Amazon Web Services)
 - **Processamento de Documentos**: PyPDF2, pandas
 - **Autenticação**: Sistema próprio com cookies seguros
@@ -109,68 +111,105 @@ streamlit run app.py --server.port 8501 --server.address 0.0.0.0
    - URL: `http://localhost:8501`
    - Credenciais padrão: usuário `admin`, senha `admin123`
 
+### 💬 Experiência da Usuária
+
+O **Cloudinhos IA** foi projetado para oferecer uma experiência acolhedora:
+
+#### 🤝 Início da Conversa
+```
+"Oi... vi o que você compartilhou. Antes de qualquer coisa, 
+sinto muito que você esteja passando por isso."
+
+"Você não está sozinha. Tudo o que você disser aqui é sigiloso, tá?"
+
+"Posso te fazer algumas perguntas? Elas vão me ajudar a pensar 
+contigo nos melhores caminhos pra te proteger."
+```
+
+#### ⏱️ Respeito ao Tempo
+- **Máximo 3 perguntas seguidas** para não sobrecarregar
+- **Pausa para acolhimento** se a usuária hesitar ou se emocionar
+- **Detecção imediata** para casos de alto risco
+
+#### 🎯 Encaminhamento Prático
+```
+"Você gostaria que eu te ajude a encontrar esses serviços na sua cidade? 
+E me conta: você tem como sair de casa agora se precisar?"
+```
+
 ## 📊 Funcionalidades do Cloudinhos IA
 
-### 🔍 Avaliação de Risco
+### 🤝 Abordagem Humanizada
 
-O sistema coleta informações através de três blocos principais:
+O sistema utiliza uma **abordagem acolhedora e empática**, com características únicas:
 
-#### Bloco 1: Violência e Ameaças
+- **Estilo Conversacional**: "Acolhedor, humano e atento – como um amigo que quer ajudar"
+- **Linguagem Acessível**: Comunicação informal e próxima para reduzir barreiras
+- **Respeito ao Tempo da Vítima**: Máximo de 3 perguntas seguidas, priorizando o conforto
+- **Acolhimento Emocional**: Frases de apoio como "Tô aqui com você, no seu tempo, tudo bem?"
 
-- Ameaças com armas
-- Agressões físicas graves
-- Violência sexual
-- Tentativas de homicídio
-- Frequência e gravidade das agressões
+### 🔍 Avaliação Rápida de Risco
 
-#### Bloco 2: Comportamento do Agressor
+O sistema realiza uma **detecção eficiente** através de perguntas-chave:
 
-- Comportamentos de controle
-- Uso de substâncias
-- Saúde mental do agressor
-- Descumprimento de medidas protetivas
-- Situação de emprego/financeira
+#### 🎯 Perguntas Iniciais de Detecção
+- "Ele já ameaçou você ou quebrou coisas dentro de casa?"
+- "Ele te controla de alguma forma (como celular, roupas, com quem você fala)?"
+- "Você sente medo dele ou já pensou em sair do relacionamento?"
 
-#### Bloco 3: Contexto da Vítima
-
-- Histórico de denúncias
-- Status do relacionamento
-- Gravidez/maternidade recente
-- Filhos em comum
-- Dependência financeira
+#### 📋 Perguntas Complementares (se necessário)
+- Impedimentos ao trabalho, estudo ou convívio familiar
+- Uso de substâncias e comportamento agressivo
 - Necessidade de atendimento médico
+- Exposição de filhos à violência
 
 ### 📈 Classificação de Risco
 
-O sistema utiliza a **metodologia oficial FRIDA** para classificação automática do risco em três níveis:
+O sistema utiliza **avaliação inteligente** baseada no protocolo FRIDA:
 
-- **🟢 Baixo**: Situações com menor probabilidade de escalada
-- **🟡 Médio**: Situações que requerem atenção e acompanhamento
-- **🔴 Elevado**: Situações de alto risco que demandam intervenção imediata
+- **� Risco Elevado**: Qualquer resposta afirmativa nas perguntas-chave de detecção inicial
+- **🟡 Risco Médio**: Sinais de controle emocional, ciúmes, dependência financeira ou histórico de agressões
+- **� Risco Baixo**: Ausência de controle, ameaças ou agressões, mas com algum incômodo emocional
 
-#### 🔢 Metodologia de Avaliação
+#### ⚡ Detecção Rápida
+Se identificado **risco elevado** nas primeiras 2 respostas, o sistema para de perguntar e orienta **imediatamente** para proteção.
 
-O sistema conta automaticamente:
-- **Respostas "Sim"**: Indicadores de risco presentes
-- **Respostas "Não Sei/Não se Aplica"**: Fatores indeterminados
+### 🎯 Encaminhamentos Inteligentes
 
-Essas contagens são cruzadas na **matriz de risco FRIDA** para determinar o nível final de risco, seguindo os padrões oficiais do CNJ/CNMP.
+O sistema oferece orientações personalizadas com **localização geográfica**:
 
-### 🎯 Encaminhamentos Personalizados
+#### 🔺 Risco Médio/Elevado:
+- **👮‍♀️ Delegacia da Mulher/Polícia Civil**: Para medidas protetivas de urgência
+- **📍 Localização Automática**: Busca órgãos num raio de até 10km do CEP informado
 
-Com base na avaliação, o sistema sugere:
+#### ❤️ Necessidade Médica:
+- **🏥 Posto de Saúde/Hospital**: Para atendimento médico
+- **⚖️ Instituto Médico Legal (IML)**: Para documentação de lesões
 
-- **👮‍♀️ Polícia/Medidas Protetivas**: Para casos de médio e alto risco
-- **🏥 Atendimento Médico/Hospitalar**: Quando há lesões físicas
-- **🧠 Apoio Psicológico/Psiquiátrico**: Para suporte emocional e mental
-- **🏢 Centros de Referência**: Para acompanhamento contínuo
+#### 🧠 Apoio Emocional:
+- **🏢 Centro de Apoio à Mulher**: Suporte psicológico especializado
+- **📞 Contatos Diretos**: Telefone e WhatsApp dos órgãos quando disponível
+
+#### 🟡 Risco Baixo com Controle:
+- **🏢 Centro de Referência da Mulher (CRAM)**: Acompanhamento psicossocial e jurídico gratuito
+
+### 📍 Funcionalidade de Localização
+
+**Powered by Amazon Location Service:**
+
+1. **Solicitação de CEP**: O sistema pede a localização da usuária
+2. **Busca Inteligente**: Localiza serviços num raio de até 10km
+3. **Contatos Completos**: Fornece telefone e WhatsApp quando disponível
+4. **Precisão Geográfica**: Calcula distâncias reais para maior conveniência
 
 ## 🛡️ Segurança e Privacidade
 
-- **Criptografia**: Comunicação segura com APIs
+- **Criptografia**: Comunicação segura com APIs AWS
 - **Autenticação**: Sistema de login protegido
 - **Confidencialidade**: Dados não são armazenados permanentemente
-- **Discrição**: Interface neutra que não revela o propósito imediatamente
+- **Discrição Total**: Interface neutra que não revela o propósito imediatamente
+- **Geolocalização Segura**: Uso responsável do Amazon Location Service
+- **Anonimato**: Apenas CEP é solicitado, sem identificação pessoal
 
 ## 📚 Fundamentação Científica
 
