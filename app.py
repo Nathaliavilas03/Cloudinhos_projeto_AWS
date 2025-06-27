@@ -43,15 +43,15 @@ def add_javascript():
     """
     st.components.v1.html(js_code, height=0)
 
-#alterar
+# alterar
 st.set_page_config(
    page_title="BRSAO179 - Grupo 04 (Cloudinhos) - Violencia Contra a Mulher",
-   page_icon="logov2.jpg",
+   page_icon="./images/logo_cloudinhos.jpg",
    layout="wide",
    initial_sidebar_state="expanded"
 )
 
-logo_path = "logov2.jpg"
+logo_path = "./images/logo_cloudinhos.jpg"
 
 def preprocess_user_message(message):
     """
