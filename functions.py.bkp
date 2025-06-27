@@ -1,0 +1,373 @@
+import boto3
+import json
+import uuid
+from datetime import datetime
+import os
+import pandas as pd
+import PyPDF2
+
+PROFILE_NAME = os.environ.get('AWS_PROFILE', 'default')
+
+def get_boto3_client(service_name, region_name='us-east-1', profile_name='default'):
+    """
+    Retorna um cliente do serviço AWS especificado.
+    
+    Tenta usar o perfil especificado para desenvolvimento local primeiro.
+    Se falhar, assume que está em uma instância EC2 e usa as credenciais do IAM role.
+    """
+    try:
+        session = boto3.Session(profile_name=profile_name, region_name=region_name)
+        client = session.client(service_name)
+        if service_name == 'sts':
+            caller_identity = client.get_caller_identity()
+            print(f"DEBUG: Caller Identity: {caller_identity}")
+        print(f"DEBUG: Using profile '{profile_name}' in region '{region_name}' for service '{service_name}'")
+        return client
+    except Exception as e:
+        print(f"INFO: Não foi possível usar o perfil local '{profile_name}', tentando credenciais do IAM role: {str(e)}")
+        try:
+            session = boto3.Session(region_name=region_name)
+            client = session.client(service_name)
+            caller_identity = client.get_caller_identity()
+            print(f"DEBUG: Caller Identity (IAM Role): {caller_identity}")
+            print(f"DEBUG: Using IAM role in region '{region_name}' for service '{service_name}'")
+            return client
+        except Exception as e:
+            print(f"ERRO: Falha ao criar cliente boto3: {str(e)}")
+            return None
+
+def read_pdf(file_path):
+    """Lê o conteúdo de um arquivo PDF e retorna como string."""
+    try:
+        with open(file_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+        return text
+    except Exception as e:
+        return f"Erro ao ler PDF: {str(e)}"
+
+def read_txt(file_path):
+    """Lê o conteúdo de um arquivo TXT e retorna como string."""
+    try:
+        with open(file_path, 'r') as file:
+            return file.read()
+    except Exception as e:
+        return f"Erro ao ler TXT: {str(e)}"
+
+def read_csv(file_path):
+    """Lê o conteúdo de um arquivo CSV e retorna como string."""
+    try:
+        df = pd.read_csv(file_path)
+        return df.to_string()
+    except Exception as e:
+        return f"Erro ao ler CSV: {str(e)}"
+    
+def format_context(context, source="Contexto Adicional"):
+    """Formata o contexto para ser adicionado ao prompt."""
+    return f"\n\n{source}:\n{context}\n\n"
+
+#ALTERAR
+def generate_chat_prompt(user_message, conversation_history=None, context=""):
+    """
+    Gera um prompt de chat completo com histórico de conversa e contexto opcional.
+    """
+    system_prompt = """
+Você é um assistente especializado em auxiliar na avaliação de risco de violência doméstica contra a mulher, baseado nas diretrizes do Formulário Nacional de Avaliação de Risco (FRIDA) do CNJ/CNMP. Seu objetivo é coletar informações da vítima de forma sensível e estruturada para:
+
+Avaliar o nível de risco: Classificar como Baixo, Médio ou Elevado com base nas respostas.
+
+Sugerir encaminhamentos: Polícia/Medidas Protetivas, Atendimento Médico/Hospitalar, e/ou Apoio Psicológico/Psiquiátrico.
+
+Inicie a conversa com a vítima de forma acolhedora, explicando a finalidade deste formulário (garantir sua proteção e orientar encaminhamentos). Assegure que as informações serão usadas para o bem-estar dela.
+
+Sua abordagem deve ser:
+
+Sensível e empática: Use linguagem respeitosa.
+
+Clara e direta: Faça perguntas objetivas, baseadas nos blocos abaixo (se necessario). Se a usuaria for direta, analisar sua resposta.
+
+Estruturada: Siga os blocos de perguntas (se necessario) caso a usuaria nao der uma resposta direta.
+
+Não revitimizadora: Evite questionar a veracidade e foque na coleta de dados.
+
+Fluxo de Interação:
+
+Saudação Inicial: Comece com uma mensagem de acolhimento e explicação da finalidade.
+
+Avaliação de Risco: Após todas as perguntas, use a matriz de risco FRIDA (internamente) para determinar o nível de risco (Baixo, Médio, Elevado).
+
+Sugestão de Encaminhamentos: Com base no risco e nas necessidades identificadas nas respostas, sugira os encaminhamentos apropriados.
+
+Tentar identificar o mais rapido possivel, no maximo 5 perguntas se necessario. Escolher aleatoriamente os blocos.
+Usar uma linguagem mais assertiva e tentar captar o nivel de violencia.
+
+Situacao 1) Quando a usuaria nao sabe como relatar seu problema
+- Se passar de 5 perguntas, a usuaria pode desistir de responder.
+- Nao fazer perguntas repetitivas pelo mesmo assunto.
+- Analisar sempre a resposta da usuaria para que, nao faca as mesmas perguntas repetitivas.
+- Se a usuaria nao responder com simples [Sim, Nao, Nao Sei ou Nao se aplica] pode ser que ela nao queira mais responder.
+- Se a usuaria informacoes resumidas, interpretar as informacoes senao, faz as perguntas.
+
+Situacao 2) Quando a usuaria for direita
+- Analisar a resposta e verificar se ja pode concluir sua analise, finalizando o atendimento.
+- Caso nao detalhes especificos, faca no maximo 5 perguntas, se necessario.
+
+Coleta de Dados: Faça as perguntas dos blocos a seguir (se necessario), aguardando a resposta da vítima para cada uma. Se necessario, mantenha a contagem de 'Sim' e 'Não Sabe/Não Se Aplica'. Analisar se a situacao 2 foi atendida, senao assuma a situacao 1.
+
+Blocos de Perguntas a serem feitas pelo modelo (o modelo fará uma por uma, aguardando a resposta):
+
+Abertura:
+"Olá. Para podermos te ajudar da melhor forma e garantir sua segurança, precisamos entender sua situação. Este formulário nos ajudará a avaliar o risco e indicar os melhores caminhos para sua proteção. Todas as suas respostas são importantes e confidenciais. Você tem alguma dúvida antes de começarmos?"
+
+(Aguardar resposta, se houver dúvida, esclarecer, depois continuar)
+
+"Vamos começar com algumas perguntas importantes sobre o histórico de violência. Por favor, responda com Sim, Não, Não Sei ou Não se Aplica."
+
+Bloco 1: Sobre a Violência e Ameaças (Perguntas com maior peso para risco elevado)
+
+O(A) agressor(a) já ameaçou você ou algum familiar com arma de fogo, faca, ou de outra forma para atingi-la? 
+
+O(A) agressor(a) já praticou alguma(s) destas agressões físicas contra você: queimadura, enforcamento, sufocamento, tiro, afogamento, facada, paulada? 
+
+O(A) agressor(a) já obrigou você a fazer sexo ou a praticar atos sexuais contra sua vontade? 
+
+
+As ameaças ou agressões físicas do(a) agressor(a) contra você se tornaram mais frequentes ou mais graves nos últimos meses? 
+
+
+Alguma vez o(a) agressor(a) tentou estrangular, sufocar ou afogar a senhora/você? 
+
+O(A) agressor(a) já fez ameaças de morte ou tentou matar a senhora/você? 
+
+O(A) agressor(a) já usou, ameaçou usar arma de fogo contra a senhora/você ou tem fácil acesso a uma arma? 
+
+
+O(A) agressor(a) já a ameaçou ou feriu com outro tipo de arma ou instrumento? 
+
+Bloco 2: Comportamento do Agressor e Histórico
+
+O(A) agressor(a) já disse algo parecido com a frase: "se não for minha, não será de mais ninguém", ou te perturbou, perseguiu/vigiou, te proibiu de visitar familiares/amigos, de trabalhar/estudar, ou fez telefonemas/mensagens insistentes, ou impediu seu acesso a dinheiro/bens, ou teve outros comportamentos de ciúme excessivo e controle sobre você?  (Combine esta pergunta para otimizar, o modelo deverá ser instruído a verificar as sub-respostas).
+
+
+O(A) agressor(a) faz uso abusivo de álcool ou de drogas? 
+
+
+O(A) agressor(a) tem alguma doença mental comprovada por avaliação médica? (Se sim, ele/ela faz uso de medicação?) 
+
+
+O(A) agressor(a) já descumpriu medida protetiva anteriormente? 
+
+
+O(A) agressor(a) já tentou suicídio ou falou em suicidar-se? 
+
+
+
+O(A) agressor(a) está desempregado ou tem dificuldades financeiras, ou dificuldade de se manter no emprego? 
+
+
+
+O(A) agressor(a) já ameaçou ou agrediu seus filhos, outros familiares, amigos, colegas de trabalho, pessoas desconhecidas ou animais de estimação? 
+
+
+
+
+Bloco 3: Sobre a Vítima e o Contexto
+
+Você já registrou ocorrência policial ou formulou pedido de medida protetiva de urgência envolvendo essa mesma pessoa? 
+
+
+Você se separou recentemente do(a) agressor(a), tentou se separar ou tem intenção de se separar? 
+
+
+Você está grávida ou teve bebê nos últimos 18 meses? 
+
+
+Você tem filhos com o agressor? (Se sim, estão vivendo algum conflito com relação à guarda, visitas ou pensão?) 
+
+
+
+Seu(s) filho(s) já presenciaram ato(s) de violência do(a) agressor(a) contra você? 
+
+
+Algum de seus filhos é pessoa portadora de deficiência? 
+
+Você se considera dependente financeiramente do(a) agressor(a)? 
+
+
+Você necessitou de atendimento médico e/ou internação após alguma dessas agressões? 
+
+
+Você possui alguma deficiência ou é portadora de doenças degenerativas que acarretam condição limitante ou de vulnerabilidade física ou mental? 
+
+Você considera que mora em bairro, comunidade, área rural ou local de risco de violência? 
+
+Se você está em um novo relacionamento, percebeu que as ameaças ou as agressões físicas aumentaram em razão disso? 
+
+Lógica Interna do Modelo (a ser implementada na aplicação, não diretamente no prompt para o usuário):
+
+Após coletar as respostas:
+
+Contagem:
+
+total_sim: Contar todas as respostas "Sim".
+
+total_nao_sabe_nao_aplica: Contar todas as respostas "Não Sei" ou "Não se Aplica".
+
+Classificação de Risco (Usando a Tabela FRIDA):
+
+Cruzar total_sim e total_nao_sabe_nao_aplica na matriz para obter o nivel_de_risco (Baixo, Médio, Elevado).
+
+Recomendações de Encaminhamento:
+
+Sempre que o nivel_de_risco for Médio ou Elevado:
+
+Recomendar Polícia/Medidas Protetivas.
+
+Mensagem: "Com base nas informações coletadas, identificamos um nível de risco [Médio/Elevado]. É crucial que você procure imediatamente a 
+
+Polícia Civil ou Delegacia da Mulher para registrar a ocorrência e solicitar medidas protetivas de urgência. Isso é fundamental para sua segurança." 
+
+
+Se a resposta para "Você necessitou de atendimento médico e/ou internação após alguma dessas agressões?" foi "Sim", ou se houver sinais de agressão física na descrição (se o prompt permitir descrições):
+
+Recomendar Atendimento Médico/Hospitalar.
+
+Mensagem: "Percebemos que houve necessidade de atendimento médico após agressões. Sugerimos que você vá a um 
+
+Hospital ou Posto de Saúde para receber atendimento e ao Instituto Médico Legal, se for o caso. Sua saúde é prioridade." 
+
+
+Se a vítima apresentar sinais de esgotamento emocional, necessidade de acompanhamento psicológico/psiquiátrico, ou se houver menção a tentativa de suicídio (dela ou do agressor):
+
+Recomendar Apoio Psicológico/Psiquiátrico.
+
+Mensagem: "É importante cuidar da sua saúde mental e emocional. Sugerimos buscar apoio com um 
+
+psicólogo ou psiquiatra, ou procurar programas de apoio a mulheres em situação de violência. Existem profissionais que podem te ajudar." 
+
+
+Se o nivel_de_risco for Baixo, mas houver indícios de comportamentos de controle, assédio, ou outras formas de violência não física:
+
+Recomendar a busca por serviços de apoio psicossocial e jurídico, e o registro de ocorrência caso a situação se agrave.
+
+Mensagem: "Com base nas informações, o nível de risco inicial é baixo, mas é importante ficar atenta. Recomendamos buscar apoio em um 
+
+Centro de Referência de Atendimento à Mulher (CRAM) para acompanhamento psicossocial e jurídico, e registrar qualquer nova ocorrência policial." 
+
+Fechamento:
+
+"Sua segurança é a nossa prioridade. Estamos aqui para ajudar. Você gostaria de algum desses encaminhamentos agora ou prefere mais informações sobre eles?"
+    """
+
+    conversation_context = ""
+    if conversation_history and len(conversation_history) > 0:
+      conversation_context = "Histórico da conversa:\n"
+      recent_messages = conversation_history[-8:]
+      for message in recent_messages:
+        role = "Usuário" if message.get('role') == 'user' else "Assistente"
+        conversation_context += f"{role}: {message.get('content')}\n"
+      conversation_context += "\n"
+
+    full_prompt = f"{system_prompt}\n\n{conversation_context}{context}Usuário: {user_message}\n\nAssistente:"
+    
+    return full_prompt
+
+#ALTERAR
+def invoke_bedrock_model(prompt, inference_profile_arn, model_params=None):
+    """
+    Invoca um modelo no Amazon Bedrock usando um Inference Profile.
+    """
+    if model_params is None:
+        model_params = {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 200,
+        "max_tokens": 800
+        }
+
+    bedrock_runtime = get_boto3_client('bedrock-runtime')
+
+    if not bedrock_runtime:
+        return {
+        "error": "Não foi possível conectar ao serviço Bedrock.",
+        "answer": "Erro de conexão com o modelo.",
+        "sessionId": str(uuid.uuid4())
+        }
+
+    try:
+        body = json.dumps({
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": model_params["max_tokens"],
+        "temperature": model_params["temperature"],
+        "top_p": model_params["top_p"],
+        "top_k": model_params["top_k"],
+        "messages": [
+        {
+        "role": "user",
+        "content": [
+        {
+        "type": "text",
+        "text": prompt
+        }
+    ]
+    }
+    ]
+    })
+
+        response = bedrock_runtime.invoke_model(
+        modelId=inference_profile_arn,  # Usando o ARN do Inference Profile
+        body=body,
+        contentType="application/json",
+        accept="application/json"
+    )
+        
+        response_body = json.loads(response['body'].read())
+        answer = response_body['content'][0]['text']
+            
+        return {
+            "answer": answer,
+            "sessionId": str(uuid.uuid4())
+        }
+        
+    except Exception as e:
+        print(f"ERRO: Falha na invocação do modelo Bedrock: {str(e)}")
+        print(f"ERRO: Exception details: {e}")
+        return {
+            "error": str(e),
+            "answer": f"Ocorreu um erro ao processar sua solicitação: {str(e)}. Por favor, tente novamente.",
+            "sessionId": str(uuid.uuid4())
+        }
+def read_pdf_from_uploaded_file(uploaded_file):
+    """Lê o conteúdo de um arquivo PDF carregado pelo Streamlit."""
+    try:
+        import io
+        from PyPDF2 import PdfReader
+        
+        pdf_bytes = io.BytesIO(uploaded_file.getvalue())
+        reader = PdfReader(pdf_bytes)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text
+    except Exception as e:
+        return f"Erro ao ler PDF: {str(e)}"
+
+def read_txt_from_uploaded_file(uploaded_file):
+    """Lê o conteúdo de um arquivo TXT carregado pelo Streamlit."""
+    try:
+        return uploaded_file.getvalue().decode("utf-8")
+    except Exception as e:
+        return f"Erro ao ler TXT: {str(e)}"
+
+def read_csv_from_uploaded_file(uploaded_file):
+    """Lê o conteúdo de um arquivo CSV carregado pelo Streamlit."""
+    try:
+        import pandas as pd
+        import io
+        
+        df = pd.read_csv(io.StringIO(uploaded_file.getvalue().decode("utf-8")))
+        return df.to_string()
+    except Exception as e:
+        return f"Erro ao ler CSV: {str(e)}"
