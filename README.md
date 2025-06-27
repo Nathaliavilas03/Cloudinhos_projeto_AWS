@@ -54,7 +54,7 @@ Cloudinhos_projeto_AWS/
 ├── assets/              # Recursos do projeto (PDFs, documentos)
 │   ├── business_rules.pdf
 │   ├── quiz.pdf
-│   └── prompt_uilizado.txt
+│   └── prompt_utilizado.txt
 └── images/              # Imagens e logos
     ├── logo_cloudinhos.jpg
     └── logo_edn.jpeg
@@ -142,11 +142,19 @@ O sistema coleta informações através de três blocos principais:
 
 ### 📈 Classificação de Risco
 
-O sistema classifica automaticamente o risco em três níveis:
+O sistema utiliza a **metodologia oficial FRIDA** para classificação automática do risco em três níveis:
 
 - **🟢 Baixo**: Situações com menor probabilidade de escalada
 - **🟡 Médio**: Situações que requerem atenção e acompanhamento
 - **🔴 Elevado**: Situações de alto risco que demandam intervenção imediata
+
+#### 🔢 Metodologia de Avaliação
+
+O sistema conta automaticamente:
+- **Respostas "Sim"**: Indicadores de risco presentes
+- **Respostas "Não Sei/Não se Aplica"**: Fatores indeterminados
+
+Essas contagens são cruzadas na **matriz de risco FRIDA** para determinar o nível final de risco, seguindo os padrões oficiais do CNJ/CNMP.
 
 ### 🎯 Encaminhamentos Personalizados
 
